@@ -578,7 +578,7 @@ checksum = "32a282da65faaf38286cf3be983213fcf1d2e2a58700e808f83f4ea9a4804bc0"
 [[package]]
 name = "menu"
 version = "0.1.0"
-source = "git+https://github.com/rileyhernandez/menu.git#7e646ce46ce3c8573791c262bcd92c9a54989361"
+source = "git+https://github.com/rileyhernandez/menu.git#c006b48606cc18784f82eccb2f76c4100eb81386"
 dependencies = [
  "serde",
  "thiserror",

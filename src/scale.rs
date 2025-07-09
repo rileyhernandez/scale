@@ -140,6 +140,9 @@ impl Scale {
         }
         None
     }
+    pub fn get_config(&self) -> Config {
+        self.config.clone()
+    }
 }
 #[derive(Debug)]
 pub enum Weight {
