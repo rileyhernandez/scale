@@ -118,7 +118,7 @@ impl Scale {
             Ok(Weight::Unstable(reading))
         }
     }
-    pub fn check_for_action(&mut self) -> Option<Action> {
+    pub fn check_for_action(&mut self) -> Option<(Action, f64)> {
         if self.is_stable() {
             let last = self.weight_buffer.last().unwrap();
             if let Some(last_stable) = self.last_stable_weight {
@@ -133,7 +133,7 @@ impl Scale {
                             Action::Served
                         }
                     };
-                    return Some(action)
+                    return Some((action, delta))
                 }
             }
             self.last_stable_weight = Some(*last);
