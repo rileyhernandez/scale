@@ -19,7 +19,7 @@ impl DisconnectedScale {
     pub fn new(config: Config, device: Device) -> Self {
         Self { config, device }
     }
-    fn from_libra_menu(libra: Libra) -> Self {
+    pub fn from_libra_menu(libra: Libra) -> Self {
         Self::new(libra.config, libra.device)
     }
     pub fn from_config(path: &Path) -> Result<Vec<Self>, Error> {
