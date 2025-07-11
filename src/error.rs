@@ -12,6 +12,7 @@ pub enum Error {
     Initialization,
     #[error("IO Error: {0}")]
     Io(#[from] std::io::Error),
+    #[cfg(feature = "find_phidgets")]
     #[error("USB Error: {0}")]
     Rusb(#[from] rusb::Error),
     #[error("Couldn't Cast String to Int")]

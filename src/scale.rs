@@ -10,7 +10,9 @@ use std::time::Duration;
 
 const BUFFER_LENGTH: usize = 20;
 const MAX_NOISE: f64 = 3.0;
+#[cfg(feature = "find_phidgets")]
 const PHIDGET_VENDOR_ID: u16 = 1730;
+#[cfg(feature = "find_phidgets")]
 const PHIDGET_PRODUCT_ID: u16 = 59;
 
 pub struct DisconnectedScale {
@@ -18,6 +20,7 @@ pub struct DisconnectedScale {
     device: Device,
 }
 impl DisconnectedScale {
+    #[cfg(feature = "find_phidgets")]
     pub fn get_connected_phidget_ids() -> Result<Vec<isize>, Error> {
         let mut connected_phidgets: Vec<isize> = Vec::with_capacity(4);
         for device in rusb::devices()?.iter() {
