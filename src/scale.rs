@@ -10,12 +10,29 @@ use std::time::Duration;
 
 const BUFFER_LENGTH: usize = 20;
 const MAX_NOISE: f64 = 3.0;
+const PHIDGET_VENDOR_ID: u16 = 1730;
+const PHIDGET_PRODUCT_ID: u16 = 59;
 
 pub struct DisconnectedScale {
     config: Config,
     device: Device,
 }
 impl DisconnectedScale {
+    pub fn get_connected_phidget_ids() -> Result<Vec<isize>, Error> {
+        let mut connected_phidgets: Vec<isize> = Vec::with_capacity(4);
+        for device in rusb::devices()?.iter() {
+            let device_desc = device.device_descriptor()?;
+            if device_desc.vendor_id() == PHIDGET_VENDOR_ID && device_desc.product_id() == PHIDGET_PRODUCT_ID {
+                let handle = device.open()?;
+                if let Some(id) = device_desc.serial_number_string_index() {
+                    handle.read_string_descriptor_ascii(id)?;
+                    let sn = handle.read_string_descriptor_ascii(id)?;
+                    connected_phidgets.push(sn.parse().map_err(|_| Error::ParseInt)?);
+                }
+            }
+        }
+        Ok(connected_phidgets)
+    }
     pub fn new(config: Config, device: Device) -> Self {
         Self { config, device }
     }
