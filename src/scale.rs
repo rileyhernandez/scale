@@ -163,6 +163,10 @@ impl Scale {
     pub fn get_config(&self) -> Config {
         self.config.clone()
     }
+    pub fn disconnect(mut self) -> Result<(), Error> {
+        self.vin.close()?;
+        Ok(())
+    }
 }
 #[derive(Debug)]
 pub enum Weight {
