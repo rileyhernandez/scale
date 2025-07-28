@@ -195,6 +195,7 @@ pub enum Action {
     RanOut,
     Refilled,
     Starting,
+    Heartbeat(f64)
 }
 impl std::fmt::Display for Action {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -203,6 +204,7 @@ impl std::fmt::Display for Action {
             Action::RanOut => write!(f, "Ran Out"),
             Action::Refilled => write!(f, "Refilled"),
             Action::Starting => write!(f, "Starting"),
+            Action::Heartbeat(w) => write!(f, "Heartbeat: {} g", w.trunc() as usize),
         }
     }
 }
