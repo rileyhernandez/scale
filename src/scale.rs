@@ -8,8 +8,6 @@ use std::path::Path;
 use std::thread::sleep;
 use std::time::Duration;
 
-const BUFFER_LENGTH: usize = 20;
-const MAX_NOISE: f64 = 3.0;
 #[cfg(feature = "find_phidgets")]
 const PHIDGET_VENDOR_ID: u16 = 1730;
 #[cfg(feature = "find_phidgets")]
@@ -49,7 +47,7 @@ impl DisconnectedScale {
             .collect())
     }
     pub fn connect(self) -> Result<Scale, Error> {
-        Scale::new(self.config, self.device, Duration::from_millis(100))
+        Scale::new(self.config, self.device)
     }
     pub fn get_device(&self) -> Device {
         self.device.clone()
@@ -63,7 +61,7 @@ pub struct Scale {
     last_stable_weight: Option<f64>,
 }
 impl Scale {
-    pub fn new(config: Config, device: Device, sample_period: Duration) -> Result<Self, Error> {
+    pub fn new(config: Config, device: Device) -> Result<Self, Error> {
         let mut vin = VoltageRatioInput::new();
         vin.set_channel(config.load_cell_id)
             .map_err(Error::Phidget)?;
@@ -71,7 +69,7 @@ impl Scale {
             .map_err(Error::Phidget)?;
         vin.open_wait(Duration::from_secs(5))
             .map_err(Error::Phidget)?;
-        vin.set_data_interval(sample_period)
+        vin.set_data_interval(config.phidget_sample_period)
             .map_err(Error::Phidget)?;
         info!(
             "Phidget {}, Load Cell {} Connected!",
@@ -79,11 +77,12 @@ impl Scale {
             vin.channel().map_err(Error::Phidget)?
         );
         sleep(Duration::from_secs(1));
+        let buffer_length = config.buffer_length;
         Ok(Self {
             vin,
             config,
             device,
-            weight_buffer: Vec::with_capacity(BUFFER_LENGTH),
+            weight_buffer: Vec::with_capacity(buffer_length),
             last_stable_weight: None,
         })
     }
@@ -108,7 +107,7 @@ impl Scale {
             .map(|r| r * self.config.gain - self.config.offset)
     }
     fn update_buffer(&mut self, weight: f64) {
-        if self.weight_buffer.len() < BUFFER_LENGTH {
+        if self.weight_buffer.len() < self.config.buffer_length {
             self.weight_buffer.push(weight);
         } else {
             self.weight_buffer.remove(0);
@@ -116,7 +115,7 @@ impl Scale {
         }
     }
     fn is_stable(&self) -> bool {
-        if self.weight_buffer.len() != BUFFER_LENGTH {
+        if self.weight_buffer.len() != self.config.buffer_length {
             return false;
         }
         let max = self
@@ -127,7 +126,7 @@ impl Scale {
             .weight_buffer
             .iter()
             .fold(f64::INFINITY, |a, &b| a.min(b));
-        max - min < MAX_NOISE
+        max - min < self.config.max_noise
     }
     pub fn get_weight(&mut self) -> Result<Weight, Error> {
         let reading = self.get_reading()?;
@@ -143,7 +142,7 @@ impl Scale {
             let last = self.weight_buffer.last().unwrap();
             if let Some(last_stable) = self.last_stable_weight {
                 let delta = last - last_stable;
-                if delta.abs() > MAX_NOISE {
+                if delta.abs() > self.config.max_noise {
                     info!("Scale: {}; Delta: {delta}", self.get_device());
                     self.last_stable_weight = Some(*last);
                     let action = {
