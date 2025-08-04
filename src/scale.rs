@@ -197,8 +197,8 @@ impl Scale {
         self.raw_read_once_settled(stable_samples, timeout, max_noise_ratio).map(|r| r * self.config.gain - self.config.offset)
     }
     pub fn set_calibration(&mut self, empty_reading: f64, weight_reading: f64, weight: f64) {
-        self.config.gain = weight_reading / (weight_reading - empty_reading);
-        self.config.offset = weight;
+        self.config.gain = weight / (weight_reading - empty_reading);
+        self.config.offset = weight * empty_reading / (weight_reading - empty_reading);
     }
 }
 #[cfg(test)]
@@ -217,7 +217,10 @@ mod tests {
             offset: test_weight * empty_reading / (weight_reading - empty_reading),
             ..Default::default()
         };
-        DisconnectedScale::new(config, Device::new(Model::LibraV0, 0)).connect()
+
+        let mut scale = DisconnectedScale::new(config, Device::new(Model::LibraV0, 0)).connect()?;
+        scale.set_calibration(empty_reading, weight_reading, test_weight);
+        Ok(scale)
     }
     #[test]
     fn weigh_once_settled() -> Result<(), Error> {
