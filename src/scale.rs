@@ -169,7 +169,7 @@ impl Scale {
         Ok(())
     }
     pub fn weigh_once_settled(
-        &mut self,
+        &self,
         stable_samples: usize,
         timeout: Duration,
     ) -> Result<f64, Error> {
