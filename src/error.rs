@@ -17,4 +17,6 @@ pub enum Error {
     Rusb(#[from] rusb::Error),
     #[error("Couldn't Cast String to Int")]
     ParseInt,
+    #[error("Timed out")]
+    Timeout,
 }

@@ -1,2 +1,2 @@
-pub mod scale;
 pub mod error;
+pub mod scale;

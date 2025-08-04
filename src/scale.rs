@@ -1,5 +1,5 @@
 use crate::error::Error;
-use log::{info};
+use log::info;
 use menu::device::Device;
 use menu::libra::{Config, Libra};
 use menu::read::Read;
@@ -23,7 +23,9 @@ impl DisconnectedScale {
         let mut connected_phidgets: Vec<isize> = Vec::with_capacity(4);
         for device in rusb::devices()?.iter() {
             let device_desc = device.device_descriptor()?;
-            if device_desc.vendor_id() == PHIDGET_VENDOR_ID && device_desc.product_id() == PHIDGET_PRODUCT_ID {
+            if device_desc.vendor_id() == PHIDGET_VENDOR_ID
+                && device_desc.product_id() == PHIDGET_PRODUCT_ID
+            {
                 let handle = device.open()?;
                 if let Some(id) = device_desc.serial_number_string_index() {
                     handle.read_string_descriptor_ascii(id)?;
@@ -152,7 +154,7 @@ impl Scale {
                             Action::Served
                         }
                     };
-                    return Some((action, delta))
+                    return Some((action, delta));
                 }
             }
             self.last_stable_weight = Some(*last);
@@ -166,19 +168,27 @@ impl Scale {
         self.vin.close()?;
         Ok(())
     }
-    pub fn weigh_once_settled(&mut self, stable_samples: usize) -> Result<f64, Error> {
+    pub fn weigh_once_settled(
+        &mut self,
+        stable_samples: usize,
+        timeout: Duration,
+    ) -> Result<f64, Error> {
+        let start_time = std::time::Instant::now();
         let mut stable_count = 0;
         let mut start_weight = self.get_reading()?;
         while stable_count < stable_samples {
             let curr_weight = self.get_reading()?;
-            if (curr_weight-start_weight).abs() < 3. {
+            if (curr_weight - start_weight).abs() < 3. {
                 stable_count += 1;
             } else {
                 stable_count = 0;
                 start_weight = curr_weight;
             }
             sleep(self.config.phidget_sample_period);
+            if start_time.elapsed() > timeout {
+                return Err(Error::Timeout);
             }
+        }
         Ok(start_weight)
     }
 }
