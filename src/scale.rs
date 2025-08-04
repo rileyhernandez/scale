@@ -172,13 +172,15 @@ impl Scale {
         &self,
         stable_samples: usize,
         timeout: Duration,
+        max_noise_ratio: f64,
     ) -> Result<f64, Error> {
         let start_time = std::time::Instant::now();
         let mut stable_count = 0;
         let mut start_weight = self.get_reading()?;
         while stable_count < stable_samples {
             let curr_weight = self.get_reading()?;
-            if (curr_weight - start_weight).abs() < 3. {
+            let max_noise = (max_noise_ratio * start_weight).abs();
+            if (curr_weight - start_weight).abs() < max_noise {
                 stable_count += 1;
             } else {
                 stable_count = 0;
@@ -190,6 +192,21 @@ impl Scale {
             }
         }
         Ok(start_weight)
+    }
+}
+#[cfg(test)]
+mod tests {
+    use menu::device::Model;
+    use super::*;
+    fn make_scale() -> Result<Scale, Error> {
+        let config = Config { phidget_id: 716588, load_cell_id: 0, ..Default::default() };
+        DisconnectedScale::new(config, Device::new(Model::LibraV0, 0)).connect()
+    }
+    #[test]
+    fn weigh_once_settled() -> Result<(), Error> {
+        let scale = make_scale()?;
+        scale.weigh_once_settled(5, Duration::from_secs(10), 0.1)?;
+        Ok(())
     }
 }
 #[derive(Debug)]
