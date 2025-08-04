@@ -168,44 +168,58 @@ impl Scale {
         self.vin.close()?;
         Ok(())
     }
-    pub fn weigh_once_settled(
-        &self,
-        stable_samples: usize,
-        timeout: Duration,
-        max_noise_ratio: f64,
-    ) -> Result<f64, Error> {
+    pub fn raw_read_once_settled(&self, stable_samples: usize, timeout: Duration, max_noise_ratio: f64) -> Result<f64, Error> {
         let start_time = std::time::Instant::now();
         let mut stable_count = 0;
-        let mut start_weight = self.get_reading()?;
+        let mut starting_reading = self.get_reading()?;
         while stable_count < stable_samples {
-            let curr_weight = self.get_reading()?;
-            let max_noise = (max_noise_ratio * start_weight).abs();
-            if (curr_weight - start_weight).abs() < max_noise {
+            let curr_reading = self.get_reading()?;
+            let max_noise = (max_noise_ratio * starting_reading).abs();
+            if (curr_reading - starting_reading).abs() < max_noise {
                 stable_count += 1;
             } else {
                 stable_count = 0;
-                start_weight = curr_weight;
+                starting_reading = curr_reading;
             }
             sleep(self.config.phidget_sample_period);
             if start_time.elapsed() > timeout {
                 return Err(Error::Timeout);
             }
         }
-        Ok(start_weight)
+        Ok(starting_reading)
+    }
+    pub fn weigh_once_settled(
+        &self,
+        stable_samples: usize,
+        timeout: Duration,
+        max_noise_ratio: f64,
+    ) -> Result<f64, Error> {
+        self.raw_read_once_settled(stable_samples, timeout, max_noise_ratio).map(|r| r * self.config.gain - self.config.offset)
     }
 }
 #[cfg(test)]
 mod tests {
-    use menu::device::Model;
     use super::*;
+    use menu::device::Model;
     fn make_scale() -> Result<Scale, Error> {
-        let config = Config { phidget_id: 716588, load_cell_id: 0, ..Default::default() };
+        let weight_reading =  0.00007940642535686493;
+        let empty_reading = -0.000003223307430744171;
+        let test_weight = 834.5;
+
+        let config = Config {
+            phidget_id: 716588,
+            load_cell_id: 0,
+            gain: test_weight / (weight_reading - empty_reading),
+            offset: test_weight * empty_reading / (weight_reading - empty_reading),
+            ..Default::default()
+        };
         DisconnectedScale::new(config, Device::new(Model::LibraV0, 0)).connect()
     }
     #[test]
     fn weigh_once_settled() -> Result<(), Error> {
         let scale = make_scale()?;
-        scale.weigh_once_settled(5, Duration::from_secs(10), 0.1)?;
+        let weight = scale.weigh_once_settled(3, Duration::from_secs(10), 0.1)?;
+        println!("DEBUG: {weight}");
         Ok(())
     }
 }
