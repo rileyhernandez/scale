@@ -171,9 +171,9 @@ impl Scale {
     pub fn raw_read_once_settled(&self, stable_samples: usize, timeout: Duration, max_noise_ratio: f64) -> Result<f64, Error> {
         let start_time = std::time::Instant::now();
         let mut stable_count = 0;
-        let mut starting_reading = self.get_reading()?;
+        let mut starting_reading = self.get_raw_reading()?;
         while stable_count < stable_samples {
-            let curr_reading = self.get_reading()?;
+            let curr_reading = self.get_raw_reading()?;
             let max_noise = (max_noise_ratio * starting_reading).abs();
             if (curr_reading - starting_reading).abs() < max_noise {
                 stable_count += 1;
@@ -196,15 +196,19 @@ impl Scale {
     ) -> Result<f64, Error> {
         self.raw_read_once_settled(stable_samples, timeout, max_noise_ratio).map(|r| r * self.config.gain - self.config.offset)
     }
+    pub fn set_calibration(&mut self, empty_reading: f64, weight_reading: f64, weight: f64) {
+        self.config.gain = weight_reading / (weight_reading - empty_reading);
+        self.config.offset = weight;
+    }
 }
 #[cfg(test)]
 mod tests {
     use super::*;
     use menu::device::Model;
     fn make_scale() -> Result<Scale, Error> {
-        let weight_reading =  0.00007940642535686493;
-        let empty_reading = -0.000003223307430744171;
-        let test_weight = 834.5;
+        let empty_reading = -0.000003141351044178009;
+        let weight_reading = 0.0001232493668794632;
+        let test_weight = 1277.;
 
         let config = Config {
             phidget_id: 716588,
