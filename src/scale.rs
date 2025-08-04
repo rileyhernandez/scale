@@ -166,6 +166,21 @@ impl Scale {
         self.vin.close()?;
         Ok(())
     }
+    pub fn weigh_once_settled(&mut self, stable_samples: usize) -> Result<f64, Error> {
+        let mut stable_count = 0;
+        let mut start_weight = self.get_reading()?;
+        while stable_count < stable_samples {
+            let curr_weight = self.get_reading()?;
+            if (curr_weight-start_weight).abs() < 3. {
+                stable_count += 1;
+            } else {
+                stable_count = 0;
+                start_weight = curr_weight;
+            }
+            sleep(self.config.phidget_sample_period);
+            }
+        Ok(start_weight)
+    }
 }
 #[derive(Debug)]
 pub enum Weight {
