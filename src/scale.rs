@@ -8,23 +8,22 @@ use std::path::Path;
 use std::thread::sleep;
 use std::time::Duration;
 
-#[cfg(feature = "find_phidgets")]
-const PHIDGET_VENDOR_ID: u16 = 1730;
-#[cfg(feature = "find_phidgets")]
-const PHIDGET_PRODUCT_ID: u16 = 59;
-
 pub struct DisconnectedScale {
     config: Config,
     device: Device,
 }
 impl DisconnectedScale {
     #[cfg(feature = "find_phidgets")]
+    const PHIDGET_VENDOR_ID: u16 = 1730;
+    #[cfg(feature = "find_phidgets")]
+    const PHIDGET_PRODUCT_ID: u16 = 59;
+    #[cfg(feature = "find_phidgets")]
     pub fn get_connected_phidget_ids() -> Result<Vec<isize>, Error> {
         let mut connected_phidgets: Vec<isize> = Vec::with_capacity(4);
         for device in rusb::devices()?.iter() {
             let device_desc = device.device_descriptor()?;
-            if device_desc.vendor_id() == PHIDGET_VENDOR_ID
-                && device_desc.product_id() == PHIDGET_PRODUCT_ID
+            if device_desc.vendor_id() == Self::PHIDGET_VENDOR_ID
+                && device_desc.product_id() == Self::PHIDGET_PRODUCT_ID
             {
                 let handle = device.open()?;
                 if let Some(id) = device_desc.serial_number_string_index() {
@@ -168,7 +167,12 @@ impl Scale {
         self.vin.close()?;
         Ok(())
     }
-    pub fn raw_read_once_settled(&self, stable_samples: usize, timeout: Duration, max_noise_ratio: f64) -> Result<f64, Error> {
+    pub fn raw_read_once_settled(
+        &self,
+        stable_samples: usize,
+        timeout: Duration,
+        max_noise_ratio: f64,
+    ) -> Result<f64, Error> {
         let start_time = std::time::Instant::now();
         let mut stable_count = 0;
         let mut starting_reading = self.get_raw_reading()?;
@@ -194,7 +198,8 @@ impl Scale {
         timeout: Duration,
         max_noise_ratio: f64,
     ) -> Result<f64, Error> {
-        self.raw_read_once_settled(stable_samples, timeout, max_noise_ratio).map(|r| r * self.config.gain - self.config.offset)
+        self.raw_read_once_settled(stable_samples, timeout, max_noise_ratio)
+            .map(|r| r * self.config.gain - self.config.offset)
     }
     pub fn set_calibration(&mut self, empty_reading: f64, weight_reading: f64, weight: f64) {
         self.config.gain = weight / (weight_reading - empty_reading);
