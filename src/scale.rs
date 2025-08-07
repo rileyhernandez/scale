@@ -5,6 +5,7 @@ use menu::libra::{Config, Libra};
 use menu::read::Read;
 use phidget::{Phidget, devices::VoltageRatioInput};
 use std::path::Path;
+use std::str::FromStr;
 use std::thread::sleep;
 use std::time::Duration;
 
@@ -168,7 +169,12 @@ impl Scale {
         self.vin.close()?;
         Ok(())
     }
-    pub fn raw_read_once_settled(&self, stable_samples: usize, timeout: Duration, max_noise_ratio: f64) -> Result<f64, Error> {
+    pub fn raw_read_once_settled(
+        &self,
+        stable_samples: usize,
+        timeout: Duration,
+        max_noise_ratio: f64,
+    ) -> Result<f64, Error> {
         let start_time = std::time::Instant::now();
         let mut stable_count = 0;
         let mut starting_reading = self.get_raw_reading()?;
@@ -194,7 +200,8 @@ impl Scale {
         timeout: Duration,
         max_noise_ratio: f64,
     ) -> Result<f64, Error> {
-        self.raw_read_once_settled(stable_samples, timeout, max_noise_ratio).map(|r| r * self.config.gain - self.config.offset)
+        self.raw_read_once_settled(stable_samples, timeout, max_noise_ratio)
+            .map(|r| r * self.config.gain - self.config.offset)
     }
     pub fn set_calibration(&mut self, empty_reading: f64, weight_reading: f64, weight: f64) {
         self.config.gain = weight / (weight_reading - empty_reading);
@@ -218,7 +225,8 @@ mod tests {
             ..Default::default()
         };
 
-        let mut scale = DisconnectedScale::new(config, Device::new(Model::LibraV0, 0)).connect()?;
+        let mut scale =
+            DisconnectedScale::new(config, Device::new(Model::LibraV0, "L0")).connect()?;
         scale.set_calibration(empty_reading, weight_reading, test_weight);
         Ok(scale)
     }
@@ -269,6 +277,22 @@ impl std::fmt::Display for Action {
             Action::Starting => write!(f, "Starting"),
             Action::Heartbeat => write!(f, "Heartbeat"),
             Action::Offline => write!(f, "Offline"),
+        }
+    }
+}
+
+impl FromStr for Action {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "Served" => Ok(Action::Served),
+            "RanOut" => Ok(Action::RanOut),
+            "Refilled" => Ok(Action::Refilled),
+            "Starting" => Ok(Action::Starting),
+            "Heartbeat" => Ok(Action::Heartbeat),
+            "Offline" => Ok(Action::Offline),
+            _ => Err(format!("Invalid action{}", s)),
         }
     }
 }
