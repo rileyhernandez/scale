@@ -1,11 +1,11 @@
 use crate::error::Error;
 use log::info;
+use menu::action::Action;
 use menu::device::Device;
 use menu::libra::{Config, Libra};
 use menu::read::Read;
 use phidget::{Phidget, devices::VoltageRatioInput};
 use std::path::Path;
-use std::str::FromStr;
 use std::thread::sleep;
 use std::time::Duration;
 
@@ -256,43 +256,6 @@ impl std::fmt::Display for Weight {
         match self {
             Weight::Stable(w) => write!(f, "Stable: {} g", w.trunc() as usize),
             Weight::Unstable(w) => write!(f, "Unstable: {} g", w.trunc() as usize),
-        }
-    }
-}
-
-pub enum Action {
-    Served,
-    RanOut,
-    Refilled,
-    Starting,
-    Heartbeat,
-    Offline,
-}
-impl std::fmt::Display for Action {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Action::Served => write!(f, "Served"),
-            Action::RanOut => write!(f, "RanOut"),
-            Action::Refilled => write!(f, "Refilled"),
-            Action::Starting => write!(f, "Starting"),
-            Action::Heartbeat => write!(f, "Heartbeat"),
-            Action::Offline => write!(f, "Offline"),
-        }
-    }
-}
-
-impl FromStr for Action {
-    type Err = String;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s {
-            "Served" => Ok(Action::Served),
-            "RanOut" => Ok(Action::RanOut),
-            "Refilled" => Ok(Action::Refilled),
-            "Starting" => Ok(Action::Starting),
-            "Heartbeat" => Ok(Action::Heartbeat),
-            "Offline" => Ok(Action::Offline),
-            _ => Err(format!("Invalid action{}", s)),
         }
     }
 }
